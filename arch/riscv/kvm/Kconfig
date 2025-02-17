@@ -17,7 +17,7 @@ menuconfig VIRTUALIZATION
 
 if VIRTUALIZATION
 
-config KVM
+menuconfig KVM
 	tristate "Kernel-based Virtual Machine (KVM) support (EXPERIMENTAL)"
 	depends on RISCV_SBI && MMU
 	select HAVE_KVM_IRQCHIP
@@ -37,5 +37,13 @@ config KVM
 	  Support hosting virtualized guest machines.
 
 	  If unsure, say N.
+
+config PROTECTED_KVM
+	bool "Protected KVM"
+	depends on KVM
+	help
+	  Isolate VMs from KVM by inserting Protected KVM between them.
+
+	  Say Y if you want to see a bug.
 
 endif # VIRTUALIZATION

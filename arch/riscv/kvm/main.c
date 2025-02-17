@@ -158,6 +158,10 @@ static int __init riscv_kvm_init(void)
 		kvm_info("AIA available with %d guest external interrupts\n",
 			 kvm_riscv_aia_nr_hgei);
 
+#ifdef CONFIG_PROTECTED_KVM // TODO: don't use the preprocessor here
+	riscv_pkvm_split();
+#endif
+
 	kvm_register_perf_callbacks(NULL);
 
 	rc = kvm_init(sizeof(struct kvm_vcpu), 0, THIS_MODULE);

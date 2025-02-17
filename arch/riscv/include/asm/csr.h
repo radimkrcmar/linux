@@ -206,6 +206,7 @@
 #define ENVCFG_STCE			(_AC(1, ULL) << 63)
 #define ENVCFG_PBMTE			(_AC(1, ULL) << 62)
 #define ENVCFG_ADUE			(_AC(1, ULL) << 61)
+#define ENVCFG_DTE			(_AC(1, ULL) << 59)
 #define ENVCFG_PMM			(_AC(0x3, ULL) << 32)
 #define ENVCFG_PMM_PMLEN_0		(_AC(0x0, ULL) << 32)
 #define ENVCFG_PMM_PMLEN_7		(_AC(0x2, ULL) << 32)
@@ -214,9 +215,11 @@
 #define ENVCFG_CBCFE			(_AC(1, UL) << 6)
 #define ENVCFG_CBIE_SHIFT		4
 #define ENVCFG_CBIE			(_AC(0x3, UL) << ENVCFG_CBIE_SHIFT)
-#define ENVCFG_CBIE_ILL			_AC(0x0, UL)
-#define ENVCFG_CBIE_FLUSH		_AC(0x1, UL)
-#define ENVCFG_CBIE_INV			_AC(0x3, UL)
+#define ENVCFG_CBIE_ILL			(_AC(0x0, UL) << ENVCFG_CBIE_SHIFT)
+#define ENVCFG_CBIE_FLUSH		(_AC(0x1, UL) << ENVCFG_CBIE_SHIFT)
+#define ENVCFG_CBIE_INV			(_AC(0x3, UL) << ENVCFG_CBIE_SHIFT)
+#define ENVCFG_SSE			_AC(0x1, UL) << 3
+#define ENVCFG_LPE			_AC(0x1, UL) << 2
 #define ENVCFG_FIOM			_AC(0x1, UL)
 
 /* Smstateen bits */

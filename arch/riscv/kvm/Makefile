@@ -37,3 +37,4 @@ kvm-y += vcpu_timer.o
 kvm-y += vcpu_vector.o
 kvm-y += vm.o
 kvm-y += vmid.o
+kvm-$(CONFIG_PROTECTED_KVM) += pkvm.o
