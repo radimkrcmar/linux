@@ -11,33 +11,6 @@
 #include <asm/asm-offsets.h>
 #include <asm/csr.h>
 
-.macro SAVE_HOST_GPRS
-	/* Save Host GPRs (except A0 and T0-T6) */
-	REG_S	ra, (KVM_ARCH_HOST_RA)(a0)
-	REG_S	sp, (KVM_ARCH_HOST_SP)(a0)
-	REG_S	gp, (KVM_ARCH_HOST_GP)(a0)
-	REG_S	tp, (KVM_ARCH_HOST_TP)(a0)
-	REG_S	s0, (KVM_ARCH_HOST_S0)(a0)
-	REG_S	s1, (KVM_ARCH_HOST_S1)(a0)
-	REG_S	a1, (KVM_ARCH_HOST_A1)(a0)
-	REG_S	a2, (KVM_ARCH_HOST_A2)(a0)
-	REG_S	a3, (KVM_ARCH_HOST_A3)(a0)
-	REG_S	a4, (KVM_ARCH_HOST_A4)(a0)
-	REG_S	a5, (KVM_ARCH_HOST_A5)(a0)
-	REG_S	a6, (KVM_ARCH_HOST_A6)(a0)
-	REG_S	a7, (KVM_ARCH_HOST_A7)(a0)
-	REG_S	s2, (KVM_ARCH_HOST_S2)(a0)
-	REG_S	s3, (KVM_ARCH_HOST_S3)(a0)
-	REG_S	s4, (KVM_ARCH_HOST_S4)(a0)
-	REG_S	s5, (KVM_ARCH_HOST_S5)(a0)
-	REG_S	s6, (KVM_ARCH_HOST_S6)(a0)
-	REG_S	s7, (KVM_ARCH_HOST_S7)(a0)
-	REG_S	s8, (KVM_ARCH_HOST_S8)(a0)
-	REG_S	s9, (KVM_ARCH_HOST_S9)(a0)
-	REG_S	s10, (KVM_ARCH_HOST_S10)(a0)
-	REG_S	s11, (KVM_ARCH_HOST_S11)(a0)
-.endm
-
 .macro SAVE_HOST_AND_RESTORE_GUEST_CSRS __resume_addr
 	/* Load Guest CSR values */
 	REG_L	t0, (KVM_ARCH_GUEST_SSTATUS)(a0)
@@ -160,31 +133,31 @@
 	REG_S	t3, (KVM_ARCH_GUEST_SEPC)(a0)
 .endm
 
-.macro RESTORE_HOST_GPRS
+.macro WITH_HOST_GPRS __op
 	/* Restore Host GPRs (except A0 and T0-T6) */
-	REG_L	ra, (KVM_ARCH_HOST_RA)(a0)
-	REG_L	sp, (KVM_ARCH_HOST_SP)(a0)
-	REG_L	gp, (KVM_ARCH_HOST_GP)(a0)
-	REG_L	tp, (KVM_ARCH_HOST_TP)(a0)
-	REG_L	s0, (KVM_ARCH_HOST_S0)(a0)
-	REG_L	s1, (KVM_ARCH_HOST_S1)(a0)
-	REG_L	a1, (KVM_ARCH_HOST_A1)(a0)
-	REG_L	a2, (KVM_ARCH_HOST_A2)(a0)
-	REG_L	a3, (KVM_ARCH_HOST_A3)(a0)
-	REG_L	a4, (KVM_ARCH_HOST_A4)(a0)
-	REG_L	a5, (KVM_ARCH_HOST_A5)(a0)
-	REG_L	a6, (KVM_ARCH_HOST_A6)(a0)
-	REG_L	a7, (KVM_ARCH_HOST_A7)(a0)
-	REG_L	s2, (KVM_ARCH_HOST_S2)(a0)
-	REG_L	s3, (KVM_ARCH_HOST_S3)(a0)
-	REG_L	s4, (KVM_ARCH_HOST_S4)(a0)
-	REG_L	s5, (KVM_ARCH_HOST_S5)(a0)
-	REG_L	s6, (KVM_ARCH_HOST_S6)(a0)
-	REG_L	s7, (KVM_ARCH_HOST_S7)(a0)
-	REG_L	s8, (KVM_ARCH_HOST_S8)(a0)
-	REG_L	s9, (KVM_ARCH_HOST_S9)(a0)
-	REG_L	s10, (KVM_ARCH_HOST_S10)(a0)
-	REG_L	s11, (KVM_ARCH_HOST_S11)(a0)
+	\__op	ra, (KVM_ARCH_HOST_RA)(a0)
+	\__op	sp, (KVM_ARCH_HOST_SP)(a0)
+	\__op	gp, (KVM_ARCH_HOST_GP)(a0)
+	\__op	tp, (KVM_ARCH_HOST_TP)(a0)
+	\__op	s0, (KVM_ARCH_HOST_S0)(a0)
+	\__op	s1, (KVM_ARCH_HOST_S1)(a0)
+	\__op	a1, (KVM_ARCH_HOST_A1)(a0)
+	\__op	a2, (KVM_ARCH_HOST_A2)(a0)
+	\__op	a3, (KVM_ARCH_HOST_A3)(a0)
+	\__op	a4, (KVM_ARCH_HOST_A4)(a0)
+	\__op	a5, (KVM_ARCH_HOST_A5)(a0)
+	\__op	a6, (KVM_ARCH_HOST_A6)(a0)
+	\__op	a7, (KVM_ARCH_HOST_A7)(a0)
+	\__op	s2, (KVM_ARCH_HOST_S2)(a0)
+	\__op	s3, (KVM_ARCH_HOST_S3)(a0)
+	\__op	s4, (KVM_ARCH_HOST_S4)(a0)
+	\__op	s5, (KVM_ARCH_HOST_S5)(a0)
+	\__op	s6, (KVM_ARCH_HOST_S6)(a0)
+	\__op	s7, (KVM_ARCH_HOST_S7)(a0)
+	\__op	s8, (KVM_ARCH_HOST_S8)(a0)
+	\__op	s9, (KVM_ARCH_HOST_S9)(a0)
+	\__op	s10, (KVM_ARCH_HOST_S10)(a0)
+	\__op	s11, (KVM_ARCH_HOST_S11)(a0)
 .endm
 
 	.text
@@ -196,7 +169,7 @@
 	 * A0 <= Pointer to struct kvm_vcpu_arch
 	 */
 SYM_FUNC_START(__kvm_riscv_switch_to)
-	SAVE_HOST_GPRS
+	WITH_HOST_GPRS REG_S
 
 	SAVE_HOST_AND_RESTORE_GUEST_CSRS .Lkvm_switch_return
 
@@ -212,7 +185,7 @@ SYM_FUNC_START(__kvm_riscv_switch_to)
 
 	SAVE_GUEST_AND_RESTORE_HOST_CSRS
 
-	RESTORE_HOST_GPRS
+	WITH_HOST_GPRS REG_L
 
 	/* Return to C code */
 	ret
@@ -225,7 +198,7 @@ SYM_FUNC_END(__kvm_riscv_switch_to)
 	 * A2 <= SBI function ID
 	 */
 SYM_FUNC_START(__kvm_riscv_nacl_switch_to)
-	SAVE_HOST_GPRS
+	WITH_HOST_GPRS REG_S
 
 	SAVE_HOST_AND_RESTORE_GUEST_CSRS .Lkvm_nacl_switch_return
 
@@ -241,7 +214,7 @@ SYM_FUNC_START(__kvm_riscv_nacl_switch_to)
 
 	SAVE_GUEST_AND_RESTORE_HOST_CSRS
 
-	RESTORE_HOST_GPRS
+	WITH_HOST_GPRS REG_L
 
 	/* Return to C code */
 	ret
