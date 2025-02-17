@@ -386,4 +386,24 @@ SYM_FUNC_START(__kvm_riscv_fp_d_restore)
 	csrw CSR_SSTATUS, t2
 	ret
 SYM_FUNC_END(__kvm_riscv_fp_d_restore)
+
+// TODO: STVEC needs alignment and I'm not sure if SYM_CODE_START if same as
+// SYM_START(pkvm_trap_entry, SYM_L_GLOBAL, .balign 2)
+SYM_CODE_START(pkvm_trap_entry)
+	SAVE_GUEST_GPRS
+
+	SAVE_GUEST_AND_RESTORE_HOST_CSRS
+
+	WITH_HOST_GPRS REG_L
+
+	call pkvm_trap
+
+	WITH_HOST_GPRS REG_S
+
+	SAVE_HOST_AND_RESTORE_GUEST_CSRS pkvm_trap_entry
+
+	RESTORE_GUEST_GPRS
+
+	sret
+SYM_CODE_END(pkvm_trap_entry)
 #endif

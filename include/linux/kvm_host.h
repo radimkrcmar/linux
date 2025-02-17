@@ -2573,6 +2573,7 @@ long kvm_arch_vcpu_pre_fault_memory(struct kvm_vcpu *vcpu,
 
 #ifdef CONFIG_PROTECTED_KVM
 int riscv_pkvm_split(void); // TODO: find a name and a place for it
+struct kvm_vcpu_arch * pkvm_trap(struct kvm_vcpu_arch * vcpu);
 #endif
 
 #endif

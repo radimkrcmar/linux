@@ -40,7 +40,7 @@ menuconfig KVM
 
 config PROTECTED_KVM
 	bool "Protected KVM"
-	depends on KVM
+	depends on KVM && !32BIT
 	help
 	  Isolate VMs from KVM by inserting Protected KVM between them.
 

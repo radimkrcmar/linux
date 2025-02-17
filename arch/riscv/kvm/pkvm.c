@@ -13,67 +13,86 @@ struct pkvm_execution_environment {
 #define PKVM_STACK_SIZE 4096
 static char pkvm_stack[PKVM_STACK_SIZE] = {0}; // TODO: allocate nice and safe stack
 
-static struct pkvm_execution_environment pkvm_ee = {
-	.base_registers = {0},
-	.stack = &pkvm_stack[PKVM_STACK_SIZE - 1], // stack grows downwards
+static struct kvm_vcpu_arch pkvm_ee = {
+	.host_context.sp = (ulong) &pkvm_stack[4095],
 };
 
-static int __init pkvm_setup_isolation(void)
+static int __init pkvm_setup_isolation(struct kvm_vcpu_arch *pkvm)
 {
 	// TODO: Isolate HS from VS: remove pkvm pages from guest physical and
 	// keep everything else identity mapped.
 	return 0;
 }
 
-static void __init pkvm_hart_setup_environment(void)
+static void __init pkvm_hart_setup_environment(struct kvm_vcpu_arch *pkvm)
 {
 	// Each hart should be able to use the same page tables.
 	csr_write(CSR_HGATP, HGATP_MODE_OFF); // Bare mode (VS physical = HS virtual)
 
-	csr_write(CSR_HSTATUS, 0xa000000a2 | HSTATUS_SPVP | HSTATUS_SPV | HSTATUS_VTW); // TODO: use a proper value, not just copy-paste from gdb :)
+	// TODO: use a proper value, not just copy-paste from gdb :)
+	pkvm->host_context.hstatus = 0xa000000a2 | HSTATUS_SPVP | HSTATUS_SPV | HSTATUS_VTW;
+	csr_write(CSR_HSTATUS, pkvm->host_context.hstatus);
 
 	// TODO: decide what to expose, the current code tries to do a much as possible
-	csr_write(CSR_HENVCFG,
-			   ENVCFG_STCE
-			 | ENVCFG_PBMTE
-			 | ENVCFG_ADUE // TODO: really?
-			 | ENVCFG_DTE
-			 // TODO: read ENVCFG_PMM from the SBI interface
-			 // hypervisor will need to emulate writes to menvcfg
-			 | ENVCFG_CBZE
-			 | ENVCFG_CBCFE
-			 | ENVCFG_CBIE_INV
-			 | ENVCFG_SSE
-			 | ENVCFG_LPE
-			 // TODO: ENVCFG_FIOM should not be needed
-			 );
+	pkvm->cfg.henvcfg = ENVCFG_STCE
+			  | ENVCFG_PBMTE
+			  | ENVCFG_ADUE // TODO: really?
+			  | ENVCFG_DTE
+			  // TODO: read ENVCFG_PMM from the SBI interface
+			  // hypervisor will need to emulate writes to menvcfg
+			  | ENVCFG_CBZE
+			  | ENVCFG_CBCFE
+			  | ENVCFG_CBIE_INV
+			  | ENVCFG_SSE
+			  | ENVCFG_LPE
+			  // TODO: ENVCFG_FIOM should not be needed
+			  ;
+	csr_write(CSR_HENVCFG, pkvm->cfg.henvcfg);
 
-	csr_write(CSR_SSTATUS, csr_read(CSR_SSTATUS) | SR_SPP);
+	// TODO: the register placement in kvm_vcpu_arch makes no sense
+	pkvm->host_context.sstatus = (csr_read(CSR_SSTATUS) | SR_SPP) & ~SR_SIE;
+	csr_write(CSR_SSTATUS, pkvm->host_context.sstatus);
 
-	csr_write(CSR_SSCRATCH, &pkvm_ee);
+	pkvm->host_sscratch = (long) pkvm;
+	csr_write(CSR_SSCRATCH, pkvm->host_sscratch);
+
+	pkvm->host_stvec = csr_read(CSR_STVEC); // TODO: handle internal kvm exceptions separately
+	/* This is the pKVM loop */
+	csr_write(CSR_STVEC, (long) pkvm_trap_entry);
 }
 
-static void __init pkvm_hart_setup_passthrough(void)
+static void __init pkvm_hart_setup_passthrough(struct kvm_vcpu_arch *pkvm)
 {
-	/*
-	 * This function is executed just once, so there is no point in using
-	 * the SBI CSR acceleration even if we are nested.
-	 */
-	csr_write(CSR_HEDELEG, ~0UL );
+	long sie = 0, sip = 0;
+
+	// TODO: could this be in a common function?
+	pkvm->cfg.hedeleg = ~0UL;
+	csr_write(CSR_HEDELEG, pkvm->cfg.hedeleg);
+
+	// pkvm->cfg.hideleg = ~0UL; // why no hideleg?
+	csr_write(CSR_HIDELEG, ~0UL);
 
 	// hvip, hie, sie -- ignored?
 	csr_write(CSR_HCOUNTEREN, ~0UL);
 
 	csr_write(CSR_HTIMEDELTA, 0UL);
 	csr_write(CSR_VSSTATUS, csr_read(CSR_SSTATUS));
-	csr_write(CSR_VSIE, csr_read(CSR_SIE));
-	csr_write(CSR_VSIP, csr_read(CSR_SIP));
+
+
+	// TODO: double check race conditions with sie/sip
+	csr_swap(CSR_SIE, &sie);
+	csr_write(CSR_VSIE, sie);
+
+	csr_swap(CSR_SIP, &sip);
+	csr_write(CSR_VSIP, sip);
 
 	csr_write(CSR_VSTVEC, csr_read(CSR_STVEC));
 	csr_write(CSR_VSSCRATCH, csr_read(CSR_SSCRATCH));
 	csr_write(CSR_VSEPC, csr_read(CSR_SEPC));
 
 	csr_write(CSR_VSATP, csr_read(CSR_SATP));
+
+	csr_write(CSR_VSTIMECMP, csr_read(CSR_STIMECMP));
 
 	// vscause
 	// vstval
@@ -86,70 +105,16 @@ static void __init pkvm_hart_setup_passthrough(void)
 #endif
 }
 
-
-/*
-static void __noreturn __init __aligned(4) pkvm_hypervisor_init(void)
-{
-	// guest trapped
-//	printk("[REMOVE] HS mode reached.");
-
-	for(;;);
-	unreachable();
-	// TODO: setup stack for the hypervisor and enter the hypervisor loop
-}
-*/
-
-static void __init pkvm_hart_execute_split(void)
+static void __init pkvm_hart_execute_split(struct kvm_vcpu_arch *pkvm)
 {
 //	printk("[REMOVE] Split imminent. %p %p", &&virtualized_linux, pkvm_hypervisor_init);
 
-	/* First hypervisor trap is taken to pkvm_hypervisor_init */
 	asm volatile (
 			"la t0, vs_mode_linux\n"
 			"csrw sepc, t0\n"
-			"la t0, hs_mode_pkvm\n"
-			"csrw stvec, t0\n"
 
 			"sret\n"
-
-			".align 2\n"
-			"hs_mode_pkvm:\n"
-			"csrrw a0, sscratch, a0\n" /* a0 contains pointer to pkvm_ee */
-			// seq 1 31 | while read i; do echo "\"sd x$i, ($i * 8)(a0)\\\\n\""; done
-			"sd x1, (1 * 8)(a0)\n"
-			"sd x2, (2 * 8)(a0)\n"
-			"sd x3, (3 * 8)(a0)\n"
-			"sd x4, (4 * 8)(a0)\n"
-			"sd x5, (5 * 8)(a0)\n"
-			"sd x6, (6 * 8)(a0)\n"
-			"sd x7, (7 * 8)(a0)\n"
-			"sd x8, (8 * 8)(a0)\n"
-			"sd x9, (9 * 8)(a0)\n"
-			//"sd x10, (10 * 8)(a0)\n" // x10 is a0 (who the hell allowed two names for the same thing...)
-			"sd x11, (11 * 8)(a0)\n"
-			"sd x12, (12 * 8)(a0)\n"
-			"sd x13, (13 * 8)(a0)\n"
-			"sd x14, (14 * 8)(a0)\n"
-			"sd x15, (15 * 8)(a0)\n"
-			"sd x16, (16 * 8)(a0)\n"
-			"sd x17, (17 * 8)(a0)\n"
-			"sd x18, (18 * 8)(a0)\n"
-			"sd x19, (19 * 8)(a0)\n"
-			"sd x20, (20 * 8)(a0)\n"
-			"sd x21, (21 * 8)(a0)\n"
-			"sd x22, (22 * 8)(a0)\n"
-			"sd x23, (23 * 8)(a0)\n"
-			"sd x24, (24 * 8)(a0)\n"
-			"sd x25, (25 * 8)(a0)\n"
-			"sd x26, (26 * 8)(a0)\n"
-			"sd x27, (27 * 8)(a0)\n"
-			"sd x28, (28 * 8)(a0)\n"
-			"sd x29, (29 * 8)(a0)\n"
-			"sd x30, (30 * 8)(a0)\n"
-			"sd x31, (31 * 8)(a0)\n"
-			// TODO: setup stack
-			"j hs_mode_pkvm\n"
-			/* HS mode pKVM never returns from this function. */
+			/* pKVM never returns to this function. */
 
 			"vs_mode_linux:\n"
 			/* Linux continues in VS mode. */
@@ -159,16 +124,16 @@ static void __init pkvm_hart_execute_split(void)
 	return;
 }
 
-static void __init pkvm_hart_split(void *arg)
+static void __init pkvm_hart_split(struct kvm_vcpu_arch *pkvm)
 {
-	pkvm_hart_setup_passthrough();
+	pkvm_hart_setup_passthrough(pkvm);
 
 	// TODO: disable passed through features that pkvm doesn't use
 
-	pkvm_hart_setup_environment();
+	pkvm_hart_setup_environment(pkvm);
 
 	/* Linux+pkvm enters in HS */
-	pkvm_hart_execute_split();
+	pkvm_hart_execute_split(pkvm);
 	/* Linux continues in VS, pkvm executes other function in HS. */
 }
 
@@ -180,11 +145,44 @@ int __init riscv_pkvm_split(void)
 
 	// TODO: add both Kconfig and runtime toggle
 
-	if ((ret = pkvm_setup_isolation()))
+	if ((ret = pkvm_setup_isolation(&pkvm_ee)))
 		return ret;
 
-	pkvm_hart_split(&ret);
+	pkvm_hart_split(&pkvm_ee);
 //	on_each_cpu(pkvm_hart_split, &ret, 1); // TODO: smp
 
 	return ret;
+}
+
+struct kvm_vcpu_arch * pkvm_trap(struct kvm_vcpu_arch * vcpu)
+{
+	struct kvm_cpu_trap trap;
+	struct sbiret sbiret;
+
+	trap.scause = csr_read(CSR_SCAUSE);
+	trap.stval = csr_read(CSR_STVAL);  // TODO: only read the rest on demand
+	trap.sepc = csr_read(CSR_SEPC);
+	trap.htval = csr_read(CSR_HTVAL);
+	trap.htinst = csr_read(CSR_HTINST);
+
+	switch (trap.scause) {
+		case EXC_SUPERVISOR_SYSCALL:
+			sbiret = sbi_ecall(vcpu->guest_context.a7,
+			                   vcpu->guest_context.a6,
+			                   vcpu->guest_context.a0,
+			                   vcpu->guest_context.a1,
+			                   vcpu->guest_context.a2,
+			                   vcpu->guest_context.a3,
+			                   vcpu->guest_context.a4,
+			                   vcpu->guest_context.a5);
+
+			vcpu->guest_context.a0 = sbiret.error;
+			vcpu->guest_context.a1 = sbiret.value;
+			vcpu->guest_context.sepc += 4;
+			break;
+		default:
+			for(;;);
+	}
+	
+	return vcpu;
 }
