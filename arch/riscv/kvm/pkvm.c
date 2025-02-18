@@ -154,10 +154,16 @@ int __init riscv_pkvm_split(void)
 	return ret;
 }
 
-struct kvm_vcpu_arch * pkvm_trap(struct kvm_vcpu_arch * vcpu)
+struct kvm_vcpu_arch * pkvm_trap(struct kvm_vcpu_arch *vcpu_arch)
 {
 	struct kvm_cpu_trap trap;
 	struct sbiret sbiret;
+
+	// TODO: refactor this disgusting shit
+	static struct kvm_vcpu vcpu_on_stack = {
+		.arch = pkvm_vcpu_arch,
+	};
+	static struct kvm_vcpu *vcpu = &vcpu_on_stack;
 
 	trap.scause = csr_read(CSR_SCAUSE);
 	trap.stval = csr_read(CSR_STVAL);  // TODO: only read the rest on demand
@@ -167,22 +173,27 @@ struct kvm_vcpu_arch * pkvm_trap(struct kvm_vcpu_arch * vcpu)
 
 	switch (trap.scause) {
 		case EXC_SUPERVISOR_SYSCALL:
-			sbiret = sbi_ecall(vcpu->guest_context.a7,
-			                   vcpu->guest_context.a6,
-			                   vcpu->guest_context.a0,
-			                   vcpu->guest_context.a1,
-			                   vcpu->guest_context.a2,
-			                   vcpu->guest_context.a3,
-			                   vcpu->guest_context.a4,
-			                   vcpu->guest_context.a5);
+			sbiret = sbi_ecall(vcpu->arch.guest_context.a7,
+			                   vcpu->arch.guest_context.a6,
+			                   vcpu->arch.guest_context.a0,
+			                   vcpu->arch.guest_context.a1,
+			                   vcpu->arch.guest_context.a2,
+			                   vcpu->arch.guest_context.a3,
+			                   vcpu->arch.guest_context.a4,
+			                   vcpu->arch.guest_context.a5);
 
-			vcpu->guest_context.a0 = sbiret.error;
-			vcpu->guest_context.a1 = sbiret.value;
-			vcpu->guest_context.sepc += 4;
+			vcpu->arch.guest_context.a0 = sbiret.error;
+			vcpu->arch.guest_context.a1 = sbiret.value;
+			vcpu->arch.guest_context.sepc += 4; // TODO: compressed ecall?
+			break;
+		case EXC_VIRTUAL_INST_FAULT:
+			BUG_ON(kvm_riscv_vcpu_virtual_insn(vcpu, NULL, &trap) <= 0);
+			// TODO: return value?
 			break;
 		default:
 			for(;;);
 	}
 	
-	return vcpu;
+	vcpu_arch = vcpu->arch; // TODO TODO TODO: optimize this
+	return vcpu_arch;
 }
