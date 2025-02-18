@@ -878,7 +878,7 @@ int kvm_arch_vcpu_ioctl_run(struct kvm_vcpu *vcpu)
 		break;
 	case KVM_EXIT_RISCV_CSR:
 		/* Process CSR value returned from user-space */
-		ret = kvm_riscv_vcpu_csr_return(vcpu, vcpu->run);
+		ret = kvm_riscv_vcpu_csr_return(vcpu, vcpu->run->riscv_csr.ret_value);
 		break;
 	default:
 		ret = 0;

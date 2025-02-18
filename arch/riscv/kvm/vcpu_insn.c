@@ -250,7 +250,7 @@ static const struct csr_func csr_funcs[] = {
  *
  * Returns > 0 upon failure and 0 upon success
  */
-int kvm_riscv_vcpu_csr_return(struct kvm_vcpu *vcpu, struct kvm_run *run)
+int kvm_riscv_vcpu_csr_return(struct kvm_vcpu *vcpu, ulong val)
 {
 	ulong insn;
 
@@ -261,8 +261,7 @@ int kvm_riscv_vcpu_csr_return(struct kvm_vcpu *vcpu, struct kvm_run *run)
 	/* Update destination register for CSR reads */
 	insn = vcpu->arch.csr_decode.insn;
 	if ((insn >> SH_RD) & MASK_RX)
-		SET_RD(insn, &vcpu->arch.guest_context,
-		       run->riscv_csr.ret_value);
+		SET_RD(insn, &vcpu->arch.guest_context, val);
 
 	/* Move to next instruction */
 	vcpu->arch.guest_context.sepc += INSN_LEN(insn);
@@ -313,12 +312,6 @@ static int csr_insn(struct kvm_vcpu *vcpu, struct kvm_run *run, ulong insn)
 	vcpu->arch.csr_decode.insn = insn;
 	vcpu->arch.csr_decode.return_handled = 0;
 
-	/* Update CSR details in kvm_run struct */
-	run->riscv_csr.csr_num = csr_num;
-	run->riscv_csr.new_value = new_val;
-	run->riscv_csr.write_mask = wr_mask;
-	run->riscv_csr.ret_value = 0;
-
 	/* Find in-kernel CSR function */
 	for (i = 0; i < ARRAY_SIZE(csr_funcs); i++) {
 		tcfn = &csr_funcs[i];
@@ -334,9 +327,8 @@ static int csr_insn(struct kvm_vcpu *vcpu, struct kvm_run *run, ulong insn)
 		rc = cfn->func(vcpu, csr_num, &val, new_val, wr_mask);
 		if (rc > KVM_INSN_EXIT_TO_USER_SPACE) {
 			if (rc == KVM_INSN_CONTINUE_NEXT_SEPC) {
-				run->riscv_csr.ret_value = val;
 				vcpu->stat.csr_exit_kernel++;
-				kvm_riscv_vcpu_csr_return(vcpu, run);
+				kvm_riscv_vcpu_csr_return(vcpu, val);
 				rc = KVM_INSN_CONTINUE_SAME_SEPC;
 			}
 			return rc;
@@ -347,6 +339,11 @@ static int csr_insn(struct kvm_vcpu *vcpu, struct kvm_run *run, ulong insn)
 	if (rc <= KVM_INSN_EXIT_TO_USER_SPACE) {
 		vcpu->stat.csr_exit_user++;
 		run->exit_reason = KVM_EXIT_RISCV_CSR;
+
+		run->riscv_csr.csr_num = csr_num;
+		run->riscv_csr.new_value = new_val;
+		run->riscv_csr.write_mask = wr_mask;
+		run->riscv_csr.ret_value = 0;
 	}
 
 	return rc;
