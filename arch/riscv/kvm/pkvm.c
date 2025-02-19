@@ -10,11 +10,13 @@ struct pkvm_execution_environment {
 	void * stack;
 };
 
-#define PKVM_STACK_SIZE 4096
+#define PKVM_STACK_SIZE (4096 * 8)
 static char pkvm_stack[PKVM_STACK_SIZE] = {0}; // TODO: allocate nice and safe stack
+static char pkvm_thread[PKVM_STACK_SIZE] = {0}; // TODO: what should thread pointer be?
 
 static struct kvm_vcpu_arch pkvm_ee = {
-	.host_context.sp = (ulong) &pkvm_stack[4095],
+	.host_context.sp = (ulong) &pkvm_stack[PKVM_STACK_SIZE - 1],
+	.host_context.tp = (ulong) &pkvm_thread,
 };
 
 static int __init pkvm_setup_isolation(struct kvm_vcpu_arch *pkvm)
@@ -56,9 +58,11 @@ static void __init pkvm_hart_setup_environment(struct kvm_vcpu_arch *pkvm)
 	pkvm->host_sscratch = (long) pkvm;
 	csr_write(CSR_SSCRATCH, pkvm->host_sscratch);
 
-	pkvm->host_stvec = csr_read(CSR_STVEC); // TODO: handle internal kvm exceptions separately
+	pkvm->host_stvec = (long) pkvm_handle_exception; // TODO: reuse linux exception handling?
 	/* This is the pKVM loop */
 	csr_write(CSR_STVEC, (long) pkvm_trap_entry);
+
+	asm volatile (REG_S " gp, (%0)":: "r" (&pkvm->host_context.gp) : "memory"); // TODO: see what should be done about GP
 }
 
 static void __init pkvm_hart_setup_passthrough(struct kvm_vcpu_arch *pkvm)
@@ -154,16 +158,17 @@ int __init riscv_pkvm_split(void)
 	return ret;
 }
 
-struct kvm_vcpu_arch * pkvm_trap(struct kvm_vcpu_arch *vcpu_arch)
+struct kvm_vcpu_arch *pkvm_trap(struct kvm_vcpu_arch *vcpu_arch)
 {
 	struct kvm_cpu_trap trap;
 	struct sbiret sbiret;
 
 	// TODO: refactor this disgusting shit
-	static struct kvm_vcpu vcpu_on_stack = {
-		.arch = pkvm_vcpu_arch,
-	};
+	static struct kvm_vcpu vcpu_on_stack;
 	static struct kvm_vcpu *vcpu = &vcpu_on_stack;
+
+	// TODO TODO TODO: optimize this
+	memcpy(&vcpu->arch, vcpu_arch, sizeof(*vcpu_arch));
 
 	trap.scause = csr_read(CSR_SCAUSE);
 	trap.stval = csr_read(CSR_STVAL);  // TODO: only read the rest on demand
@@ -187,13 +192,13 @@ struct kvm_vcpu_arch * pkvm_trap(struct kvm_vcpu_arch *vcpu_arch)
 			vcpu->arch.guest_context.sepc += 4; // TODO: compressed ecall?
 			break;
 		case EXC_VIRTUAL_INST_FAULT:
-			BUG_ON(kvm_riscv_vcpu_virtual_insn(vcpu, NULL, &trap) <= 0);
+			kvm_riscv_vcpu_virtual_insn(vcpu, NULL, &trap);
 			// TODO: return value?
 			break;
 		default:
 			for(;;);
 	}
 	
-	vcpu_arch = vcpu->arch; // TODO TODO TODO: optimize this
+	memcpy(vcpu_arch, &vcpu->arch, sizeof(*vcpu_arch));
 	return vcpu_arch;
 }

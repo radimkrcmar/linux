@@ -414,6 +414,7 @@ void kvm_riscv_vcpu_record_steal_time(struct kvm_vcpu *vcpu);
 
 #ifdef CONFIG_PROTECTED_KVM
 void pkvm_trap_entry(void);
+void pkvm_handle_exception(void);
 #endif
 
 #endif /* __RISCV_KVM_HOST_H__ */

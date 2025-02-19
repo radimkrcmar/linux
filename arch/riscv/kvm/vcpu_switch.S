@@ -406,4 +406,9 @@ SYM_CODE_START(pkvm_trap_entry)
 
 	sret
 SYM_CODE_END(pkvm_trap_entry)
+
+SYM_CODE_START(pkvm_handle_exception)
+	a:
+	j a
+SYM_CODE_END(pkvm_handle_exception)
 #endif
