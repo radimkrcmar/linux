@@ -160,7 +160,7 @@ static int __init riscv_kvm_init(void)
 
 #ifdef CONFIG_PROTECTED_KVM // TODO: don't use the preprocessor here
 	riscv_pkvm_split();
-	//return -ENODEV; // TODO: remove after testing that linux works
+	return -ENODEV; // TODO: remove after testing that linux works
 #endif
 
 	kvm_register_perf_callbacks(NULL);
