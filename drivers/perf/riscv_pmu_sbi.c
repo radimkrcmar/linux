@@ -326,10 +326,10 @@ static int pmu_sbi_check_event_info(void)
 	base_addr = __pa(event_info_shmem);
 	if (IS_ENABLED(CONFIG_32BIT))
 		ret = sbi_ecall(SBI_EXT_PMU, SBI_EXT_PMU_EVENT_GET_INFO, lower_32_bits(base_addr),
-				upper_32_bits(base_addr), count, 0, 0, 0);
+				upper_32_bits(base_addr), count, 0);
 	else
 		ret = sbi_ecall(SBI_EXT_PMU, SBI_EXT_PMU_EVENT_GET_INFO, base_addr, 0,
-				count, 0, 0, 0);
+				count, 0);
 	if (ret.error) {
 		result = -EOPNOTSUPP;
 		goto free_mem;
