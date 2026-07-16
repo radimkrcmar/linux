@@ -140,8 +140,7 @@ static int mpxy_get_channel_count(u32 *channel_count)
 	get_cpu();
 
 	/* Get the remaining and returned fields to calculate total */
-	sret = sbi_ecall(SBI_EXT_MPXY, SBI_EXT_MPXY_GET_CHANNEL_IDS,
-			 0, 0, 0, 0, 0, 0);
+	sret = sbi_ecall(SBI_EXT_MPXY, SBI_EXT_MPXY_GET_CHANNEL_IDS, 0);
 	if (sret.error)
 		goto err_put_cpu;
 
@@ -170,7 +169,7 @@ static int mpxy_get_channel_ids(u32 channel_count, u32 *channel_ids)
 
 	do {
 		sret = sbi_ecall(SBI_EXT_MPXY, SBI_EXT_MPXY_GET_CHANNEL_IDS,
-				 start_index, 0, 0, 0, 0, 0);
+				 start_index);
 		if (sret.error)
 			goto err_put_cpu;
 
@@ -202,7 +201,7 @@ static int mpxy_read_attrs(u32 channel_id, u32 base_attrid, u32 attr_count,
 	get_cpu();
 
 	sret = sbi_ecall(SBI_EXT_MPXY, SBI_EXT_MPXY_READ_ATTRS,
-			 channel_id, base_attrid, attr_count, 0, 0, 0);
+			 channel_id, base_attrid, attr_count);
 	if (sret.error)
 		goto err_put_cpu;
 
@@ -228,7 +227,7 @@ static int mpxy_write_attrs(u32 channel_id, u32 base_attrid, u32 attr_count,
 
 	memcpy_to_le32((__le32 *)mpxy->shmem, attrs_buf, attr_count);
 	sret = sbi_ecall(SBI_EXT_MPXY, SBI_EXT_MPXY_WRITE_ATTRS,
-			 channel_id, base_attrid, attr_count, 0, 0, 0);
+			 channel_id, base_attrid, attr_count);
 
 	put_cpu();
 	return sbi_err_map_linux_errno(sret.error);
@@ -255,7 +254,7 @@ static int mpxy_send_message_with_resp(u32 channel_id, u32 msg_id,
 		memcpy(mpxy->shmem, tx, tx_len);
 
 	sret = sbi_ecall(SBI_EXT_MPXY, SBI_EXT_MPXY_SEND_MSG_WITH_RESP,
-			 channel_id, msg_id, tx_len, 0, 0, 0);
+			 channel_id, msg_id, tx_len);
 	if (rx && !sret.error) {
 		rx_bytes = sret.value;
 		if (rx_bytes > max_rx_len) {
@@ -290,7 +289,7 @@ static int mpxy_send_message_without_resp(u32 channel_id, u32 msg_id,
 		memcpy(mpxy->shmem, tx, tx_len);
 
 	sret = sbi_ecall(SBI_EXT_MPXY, SBI_EXT_MPXY_SEND_MSG_WITHOUT_RESP,
-			 channel_id, msg_id, tx_len, 0, 0, 0);
+			 channel_id, msg_id, tx_len);
 
 	put_cpu();
 	return sbi_err_map_linux_errno(sret.error);
@@ -311,7 +310,7 @@ static int mpxy_get_notifications(u32 channel_id,
 	get_cpu();
 
 	sret = sbi_ecall(SBI_EXT_MPXY, SBI_EXT_MPXY_GET_NOTIFICATION_EVENTS,
-			 channel_id, 0, 0, 0, 0, 0);
+			 channel_id);
 	if (sret.error)
 		goto err_put_cpu;
 	if (sret.value < 0 || mpxy_shmem_size < sizeof(*notif_data) ||
@@ -332,8 +331,7 @@ static int mpxy_get_shmem_size(unsigned long *shmem_size)
 {
 	struct sbiret sret;
 
-	sret = sbi_ecall(SBI_EXT_MPXY, SBI_EXT_MPXY_GET_SHMEM_SIZE,
-			 0, 0, 0, 0, 0, 0);
+	sret = sbi_ecall(SBI_EXT_MPXY, SBI_EXT_MPXY_GET_SHMEM_SIZE);
 	if (sret.error)
 		return sbi_err_map_linux_errno(sret.error);
 	if (shmem_size)
@@ -360,7 +358,7 @@ static int mpxy_setup_shmem(unsigned int cpu)
 	 * flags[1:0] = 00b
 	 */
 	sret = sbi_ecall(SBI_EXT_MPXY, SBI_EXT_MPXY_SET_SHMEM,
-			 page_to_phys(shmem_page), 0, 0, 0, 0, 0);
+			 page_to_phys(shmem_page), 0, 0);
 	if (sret.error) {
 		free_pages((unsigned long)page_to_virt(shmem_page),
 			   get_order(mpxy_shmem_size));
