@@ -173,7 +173,8 @@ secondary_start_sbi:
 	ecall
 	beqz a0, 1f
 	la a1, riscv_nousercfi
-	li a0, CMDLINE_DISABLE_RISCV_USERCFI_BCFI
+	REG_L a0, (a1)
+	ori a0, a0, CMDLINE_DISABLE_RISCV_USERCFI_BCFI
 	REG_S a0, (a1)
 1:
 #endif
@@ -314,7 +315,8 @@ SYM_CODE_START(_start_kernel)
 	ecall
 	beqz a0, 1f
 	la a1, riscv_nousercfi
-	li a0, CMDLINE_DISABLE_RISCV_USERCFI_BCFI
+	REG_L a0, (a1)
+	ori a0, a0, CMDLINE_DISABLE_RISCV_USERCFI_BCFI
 	REG_S a0, (a1)
 1:
 #endif
