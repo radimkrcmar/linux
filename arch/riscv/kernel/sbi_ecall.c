@@ -2,15 +2,28 @@
 /* Copyright (c) 2024 Rivos Inc. */
 
 #include <asm/sbi.h>
+#include <asm/sbi_ecall.h>
 
-long __sbi_base_ecall(int fid)
+long sbi_get_mvendorid(void)
 {
-	struct sbiret ret;
+	struct sbiret ret = ecall_sbi_get_mvendorid();
 
-	ret = sbi_ecall(SBI_EXT_BASE, fid);
-	if (!ret.error)
-		return ret.value;
-	else
-		return sbi_err_map_linux_errno(ret.error);
+	return ret.error ? sbi_err_map_linux_errno(ret.error) : ret.value;
 }
-EXPORT_SYMBOL(__sbi_base_ecall);
+EXPORT_SYMBOL_GPL(sbi_get_mvendorid);
+
+long sbi_get_marchid(void)
+{
+	struct sbiret ret = ecall_sbi_get_marchid();
+
+	return ret.error ? sbi_err_map_linux_errno(ret.error) : ret.value;
+}
+EXPORT_SYMBOL_GPL(sbi_get_marchid);
+
+long sbi_get_mimpid(void)
+{
+	struct sbiret ret = ecall_sbi_get_mimpid();
+
+	return ret.error ? sbi_err_map_linux_errno(ret.error) : ret.value;
+}
+EXPORT_SYMBOL_GPL(sbi_get_mimpid);

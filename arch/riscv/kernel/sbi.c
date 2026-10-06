@@ -11,6 +11,7 @@
 #include <linux/pm.h>
 #include <linux/reboot.h>
 #include <asm/sbi.h>
+#include <asm/sbi_ecall.h>
 #include <asm/smp.h>
 #include <asm/tlbflush.h>
 
@@ -540,7 +541,7 @@ long sbi_probe_extension(int extid)
 {
 	struct sbiret ret;
 
-	ret = sbi_ecall(SBI_EXT_BASE, SBI_EXT_BASE_PROBE_EXT, extid);
+	ret = ecall_sbi_probe_extension(extid);
 	if (!ret.error)
 		return ret.value;
 
@@ -550,36 +551,24 @@ EXPORT_SYMBOL(sbi_probe_extension);
 
 static inline long sbi_get_spec_version(void)
 {
-	return __sbi_base_ecall(SBI_EXT_BASE_GET_SPEC_VERSION);
+	struct sbiret ret = ecall_sbi_get_spec_version();
+
+	return ret.error ? sbi_err_map_linux_errno(ret.error) : ret.value;
 }
 
 static inline long sbi_get_firmware_id(void)
 {
-	return __sbi_base_ecall(SBI_EXT_BASE_GET_IMP_ID);
+	struct sbiret ret = ecall_sbi_get_impl_id();
+
+	return ret.error ? sbi_err_map_linux_errno(ret.error) : ret.value;
 }
 
 static inline long sbi_get_firmware_version(void)
 {
-	return __sbi_base_ecall(SBI_EXT_BASE_GET_IMP_VERSION);
-}
+	struct sbiret ret = ecall_sbi_get_impl_version();
 
-long sbi_get_mvendorid(void)
-{
-	return __sbi_base_ecall(SBI_EXT_BASE_GET_MVENDORID);
+	return ret.error ? sbi_err_map_linux_errno(ret.error) : ret.value;
 }
-EXPORT_SYMBOL_GPL(sbi_get_mvendorid);
-
-long sbi_get_marchid(void)
-{
-	return __sbi_base_ecall(SBI_EXT_BASE_GET_MARCHID);
-}
-EXPORT_SYMBOL_GPL(sbi_get_marchid);
-
-long sbi_get_mimpid(void)
-{
-	return __sbi_base_ecall(SBI_EXT_BASE_GET_MIMPID);
-}
-EXPORT_SYMBOL_GPL(sbi_get_mimpid);
 
 bool sbi_debug_console_available;
 

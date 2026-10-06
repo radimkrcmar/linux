@@ -573,7 +573,6 @@ struct sbiret {
 };
 
 void sbi_init(void);
-long __sbi_base_ecall(int fid);
 
 #define __sbi_ecall_args2(e, f) \
 	uintptr_t __ta7 = (uintptr_t)(e); \
