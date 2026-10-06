@@ -32,6 +32,7 @@ enum sbi_ext_id {
 	SBI_EXT_HSM = 0x48534D,
 	SBI_EXT_SRST = 0x53525354,
 	SBI_EXT_SUSP = 0x53555350,
+	SBI_EXT_CPPC = 0x43505043,
 	SBI_EXT_PMU = 0x504D55,
 	SBI_EXT_DBCN = 0x4442434E,
 	SBI_EXT_STA = 0x535441,
@@ -128,6 +129,13 @@ enum sbi_ext_susp_fid {
 
 enum sbi_ext_susp_sleep_type {
 	SBI_SUSP_SLEEP_TYPE_SUSPEND_TO_RAM = 0,
+};
+
+enum sbi_ext_cppc_fid {
+	SBI_EXT_CPPC_PROBE = 0,
+	SBI_EXT_CPPC_READ,
+	SBI_EXT_CPPC_READ_HI,
+	SBI_EXT_CPPC_WRITE,
 };
 
 enum sbi_ext_pmu_fid {

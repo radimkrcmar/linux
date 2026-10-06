@@ -9,14 +9,6 @@
 #include <asm/csr.h>
 #include <asm/sbi.h>
 
-#define SBI_EXT_CPPC 0x43505043
-
-/* CPPC interfaces defined in SBI spec */
-#define SBI_CPPC_PROBE			0x0
-#define SBI_CPPC_READ			0x1
-#define SBI_CPPC_READ_HI		0x2
-#define SBI_CPPC_WRITE			0x3
-
 /* RISC-V FFH definitions from RISC-V FFH spec */
 #define FFH_CPPC_TYPE(r)		(((r) & GENMASK_ULL(63, 60)) >> 60)
 #define FFH_CPPC_SBI_REG(r)		((r) & GENMASK(31, 0))
@@ -50,7 +42,7 @@ static void sbi_cppc_read(void *read_data)
 {
 	struct sbi_cppc_data *data = (struct sbi_cppc_data *)read_data;
 
-	data->ret = sbi_ecall(SBI_EXT_CPPC, SBI_CPPC_READ,
+	data->ret = sbi_ecall(SBI_EXT_CPPC, SBI_EXT_CPPC_READ,
 			      data->reg);
 }
 
@@ -58,7 +50,7 @@ static void sbi_cppc_write(void *write_data)
 {
 	struct sbi_cppc_data *data = (struct sbi_cppc_data *)write_data;
 
-	data->ret = sbi_ecall(SBI_EXT_CPPC, SBI_CPPC_WRITE,
+	data->ret = sbi_ecall(SBI_EXT_CPPC, SBI_EXT_CPPC_WRITE,
 			      data->reg, data->val);
 }
 
