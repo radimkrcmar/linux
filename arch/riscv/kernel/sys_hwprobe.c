@@ -101,6 +101,9 @@ static void hwprobe_isa_ext0(struct riscv_hwprobe *pair,
 	if (is_user_lpad_enabled())
 		pair->value |= RISCV_HWPROBE_EXT_ZICFILP;
 
+	if (riscv_have_user_pmlen(7) || riscv_have_user_pmlen(16))
+		pair->value |= RISCV_HWPROBE_EXT_SUPM;
+
 	/*
 	 * Loop through and record extensions that 1) anyone has, and 2) anyone
 	 * doesn't have.
@@ -183,9 +186,6 @@ static void hwprobe_isa_ext0(struct riscv_hwprobe *pair,
 			EXT_KEY(isainfo->isa, ZFH, pair->value, missing);
 			EXT_KEY(isainfo->isa, ZFHMIN, pair->value, missing);
 		}
-
-		if (IS_ENABLED(CONFIG_RISCV_ISA_SUPM))
-			EXT_KEY(isainfo->isa, SUPM, pair->value, missing);
 	}
 
 	/* Now turn off reporting features if any CPU is missing it. */
