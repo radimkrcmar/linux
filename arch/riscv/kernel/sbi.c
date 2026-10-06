@@ -58,7 +58,7 @@ static unsigned long __sbi_v01_cpumask_to_hartmask(const struct cpumask *cpu_mas
  */
 void sbi_console_putchar(int ch)
 {
-	sbi_ecall(SBI_EXT_0_1_CONSOLE_PUTCHAR, 0, ch);
+	ecall_sbi_legacy_console_putchar(ch);
 }
 EXPORT_SYMBOL(sbi_console_putchar);
 
@@ -69,11 +69,7 @@ EXPORT_SYMBOL(sbi_console_putchar);
  */
 int sbi_console_getchar(void)
 {
-	struct sbiret ret;
-
-	ret = sbi_ecall(SBI_EXT_0_1_CONSOLE_GETCHAR, 0);
-
-	return ret.error;
+	return ecall_sbi_legacy_console_getchar();
 }
 EXPORT_SYMBOL(sbi_console_getchar);
 
@@ -84,7 +80,7 @@ EXPORT_SYMBOL(sbi_console_getchar);
  */
 void sbi_shutdown(void)
 {
-	sbi_ecall(SBI_EXT_0_1_SHUTDOWN, 0);
+	ecall_sbi_legacy_shutdown();
 }
 EXPORT_SYMBOL(sbi_shutdown);
 
@@ -96,19 +92,14 @@ EXPORT_SYMBOL(sbi_shutdown);
  */
 static void __sbi_set_timer_v01(uint64_t stime_value)
 {
-#if __riscv_xlen == 32
-	sbi_ecall(SBI_EXT_0_1_SET_TIMER, 0, stime_value,
-		  stime_value >> 32);
-#else
-	sbi_ecall(SBI_EXT_0_1_SET_TIMER, 0, stime_value);
-#endif
+	ecall_sbi_legacy_set_timer(stime_value);
 }
 
 static void __sbi_send_ipi_v01(unsigned int cpu)
 {
 	unsigned long hart_mask =
 		__sbi_v01_cpumask_to_hartmask(cpumask_of(cpu));
-	sbi_ecall(SBI_EXT_0_1_SEND_IPI, 0, (unsigned long)(&hart_mask));
+	ecall_sbi_legacy_send_ipi(&hart_mask);
 }
 
 static int __sbi_rfence_v01(int fid, const struct cpumask *cpu_mask,
@@ -125,17 +116,14 @@ static int __sbi_rfence_v01(int fid, const struct cpumask *cpu_mask,
 	/* v0.2 function IDs are equivalent to v0.1 extension IDs */
 	switch (fid) {
 	case SBI_EXT_RFENCE_REMOTE_FENCE_I:
-		sbi_ecall(SBI_EXT_0_1_REMOTE_FENCE_I, 0,
-			  (unsigned long)&hart_mask);
+		ecall_sbi_legacy_remote_fence_i(&hart_mask);
 		break;
 	case SBI_EXT_RFENCE_REMOTE_SFENCE_VMA:
-		sbi_ecall(SBI_EXT_0_1_REMOTE_SFENCE_VMA, 0,
-			  (unsigned long)&hart_mask, start, size);
+		ecall_sbi_legacy_remote_sfence_vma(&hart_mask, start, size);
 		break;
 	case SBI_EXT_RFENCE_REMOTE_SFENCE_VMA_ASID:
-		sbi_ecall(SBI_EXT_0_1_REMOTE_SFENCE_VMA_ASID, 0,
-			  (unsigned long)&hart_mask, start, size,
-			  arg4);
+		ecall_sbi_legacy_remote_sfence_vma_asid(&hart_mask, start, size,
+							arg4);
 		break;
 	default:
 		pr_err("SBI call [%d]not supported in SBI v0.1\n", fid);
@@ -177,12 +165,7 @@ static void sbi_set_power_off(void) {}
 
 static void __sbi_set_timer_v02(uint64_t stime_value)
 {
-#if __riscv_xlen == 32
-	sbi_ecall(SBI_EXT_TIME, SBI_EXT_TIME_SET_TIMER, stime_value,
-		  stime_value >> 32);
-#else
-	sbi_ecall(SBI_EXT_TIME, SBI_EXT_TIME_SET_TIMER, stime_value);
-#endif
+	ecall_sbi_set_timer(stime_value);
 }
 
 static void __sbi_send_ipi_v02(unsigned int cpu)
@@ -190,8 +173,7 @@ static void __sbi_send_ipi_v02(unsigned int cpu)
 	int result;
 	struct sbiret ret = {0};
 
-	ret = sbi_ecall(SBI_EXT_IPI, SBI_EXT_IPI_SEND_IPI,
-			1UL, cpuid_to_hartid_map(cpu));
+	ret = ecall_sbi_send_ipi(1UL, cpuid_to_hartid_map(cpu));
 	if (ret.error) {
 		result = sbi_err_map_linux_errno(ret.error);
 		pr_err("%s: hbase = [%lu] failed (error [%d])\n",
@@ -205,41 +187,37 @@ static int __sbi_rfence_v02_call(unsigned long fid, unsigned long hmask,
 				 unsigned long arg5)
 {
 	struct sbiret ret = {0};
-	int ext = SBI_EXT_RFENCE;
 	int result = 0;
 
 	switch (fid) {
 	case SBI_EXT_RFENCE_REMOTE_FENCE_I:
-		ret = sbi_ecall(ext, fid, hmask, hbase);
+		ret = ecall_sbi_remote_fence_i(hmask, hbase);
 		break;
 	case SBI_EXT_RFENCE_REMOTE_SFENCE_VMA:
-		ret = sbi_ecall(ext, fid, hmask, hbase, start,
-				size);
+		ret = ecall_sbi_remote_sfence_vma(hmask, hbase, start, size);
 		break;
 	case SBI_EXT_RFENCE_REMOTE_SFENCE_VMA_ASID:
-		ret = sbi_ecall(ext, fid, hmask, hbase, start,
-				size, arg4);
+		ret = ecall_sbi_remote_sfence_vma_asid(hmask, hbase, start,
+						       size, arg4);
 		break;
 
 	case SBI_EXT_RFENCE_REMOTE_HFENCE_GVMA:
-		ret = sbi_ecall(ext, fid, hmask, hbase, start,
-				size);
+		ret = ecall_sbi_remote_hfence_gvma(hmask, hbase, start, size);
 		break;
 	case SBI_EXT_RFENCE_REMOTE_HFENCE_GVMA_VMID:
-		ret = sbi_ecall(ext, fid, hmask, hbase, start,
-				size, arg4);
+		ret = ecall_sbi_remote_hfence_gvma_vmid(hmask, hbase, start,
+							size, arg4);
 		break;
 	case SBI_EXT_RFENCE_REMOTE_HFENCE_VVMA:
-		ret = sbi_ecall(ext, fid, hmask, hbase, start,
-				size);
+		ret = ecall_sbi_remote_hfence_vvma(hmask, hbase, start, size);
 		break;
 	case SBI_EXT_RFENCE_REMOTE_HFENCE_VVMA_ASID:
-		ret = sbi_ecall(ext, fid, hmask, hbase, start,
-				size, arg4);
+		ret = ecall_sbi_remote_hfence_vvma_asid(hmask, hbase, start,
+							size, arg4);
 		break;
 	default:
 		pr_err("unknown function ID [%lu] for SBI extension [%d]\n",
-		       fid, ext);
+		       fid, SBI_EXT_RFENCE);
 		result = -EINVAL;
 	}
 
@@ -331,8 +309,7 @@ int sbi_fwft_set(u32 feature, unsigned long value, unsigned long flags)
 	if (!sbi_fwft_supported)
 		return -EOPNOTSUPP;
 
-	ret = sbi_ecall(SBI_EXT_FWFT, SBI_EXT_FWFT_SET,
-			feature, value, flags);
+	ret = ecall_sbi_fwft_set(feature, value, flags);
 
 	return sbi_err_map_linux_errno(ret.error);
 }
@@ -508,7 +485,7 @@ EXPORT_SYMBOL(sbi_remote_hfence_vvma_asid);
 
 static void sbi_srst_reset(unsigned long type, unsigned long reason)
 {
-	sbi_ecall(SBI_EXT_SRST, SBI_EXT_SRST_RESET, type, reason);
+	ecall_sbi_system_reset(type, reason);
 	pr_warn("%s: type=0x%lx reason=0x%lx failed\n",
 		__func__, type, reason);
 }
@@ -589,12 +566,11 @@ int sbi_debug_console_write(const char *bytes, unsigned int num_bytes)
 		num_bytes = PAGE_SIZE - offset_in_page(bytes);
 
 	if (IS_ENABLED(CONFIG_32BIT))
-		ret = sbi_ecall(SBI_EXT_DBCN, SBI_EXT_DBCN_CONSOLE_WRITE,
-				num_bytes, lower_32_bits(base_addr),
-				upper_32_bits(base_addr));
+		ret = ecall_sbi_debug_console_write(num_bytes,
+						    lower_32_bits(base_addr),
+						    upper_32_bits(base_addr));
 	else
-		ret = sbi_ecall(SBI_EXT_DBCN, SBI_EXT_DBCN_CONSOLE_WRITE,
-				num_bytes, base_addr, 0);
+		ret = ecall_sbi_debug_console_write(num_bytes, base_addr, 0);
 
 	if (ret.error == SBI_ERR_FAILURE)
 		return -EIO;
@@ -618,12 +594,11 @@ int sbi_debug_console_read(char *bytes, unsigned int num_bytes)
 		num_bytes = PAGE_SIZE - offset_in_page(bytes);
 
 	if (IS_ENABLED(CONFIG_32BIT))
-		ret = sbi_ecall(SBI_EXT_DBCN, SBI_EXT_DBCN_CONSOLE_READ,
-				num_bytes, lower_32_bits(base_addr),
-				upper_32_bits(base_addr));
+		ret = ecall_sbi_debug_console_read(num_bytes,
+						   lower_32_bits(base_addr),
+						   upper_32_bits(base_addr));
 	else
-		ret = sbi_ecall(SBI_EXT_DBCN, SBI_EXT_DBCN_CONSOLE_READ,
-				num_bytes, base_addr, 0);
+		ret = ecall_sbi_debug_console_read(num_bytes, base_addr, 0);
 
 	if (ret.error == SBI_ERR_FAILURE)
 		return -EIO;
