@@ -22,6 +22,7 @@
 #include <asm/page.h>
 #include <asm/paravirt.h>
 #include <asm/sbi.h>
+#include <asm/sbi_ecall.h>
 
 static bool steal_acc = true;
 static int __init parse_no_stealacc(char *arg)
@@ -50,8 +51,7 @@ static int sbi_sta_steal_time_set_shmem(unsigned long lo, unsigned long hi,
 {
 	struct sbiret ret;
 
-	ret = sbi_ecall(SBI_EXT_STA, SBI_EXT_STA_STEAL_TIME_SET_SHMEM,
-			lo, hi, flags);
+	ret = ecall_sbi_steal_time_set_shmem(lo, hi, flags);
 	if (ret.error) {
 		if (lo == SBI_SHMEM_DISABLE && hi == SBI_SHMEM_DISABLE)
 			pr_warn("Failed to disable steal-time shmem");

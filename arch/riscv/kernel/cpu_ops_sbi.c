@@ -11,6 +11,7 @@
 #include <asm/cpu_ops.h>
 #include <asm/cpu_ops_sbi.h>
 #include <asm/sbi.h>
+#include <asm/sbi_ecall.h>
 #include <asm/smp.h>
 
 extern char secondary_start_sbi[];
@@ -28,8 +29,7 @@ static int sbi_hsm_hart_start(unsigned long hartid, unsigned long saddr,
 {
 	struct sbiret ret;
 
-	ret = sbi_ecall(SBI_EXT_HSM, SBI_EXT_HSM_HART_START,
-			hartid, saddr, priv);
+	ret = ecall_sbi_hart_start(hartid, saddr, priv);
 
 	return sbi_err_map_linux_errno(ret.error);
 }
@@ -39,7 +39,7 @@ static int sbi_hsm_hart_stop(void)
 {
 	struct sbiret ret;
 
-	ret = sbi_ecall(SBI_EXT_HSM, SBI_EXT_HSM_HART_STOP);
+	ret = ecall_sbi_hart_stop();
 
 	return sbi_err_map_linux_errno(ret.error);
 }
@@ -48,8 +48,7 @@ static int sbi_hsm_hart_get_status(unsigned long hartid)
 {
 	struct sbiret ret;
 
-	ret = sbi_ecall(SBI_EXT_HSM, SBI_EXT_HSM_HART_STATUS,
-			hartid);
+	ret = ecall_sbi_hart_get_status(hartid);
 	if (ret.error)
 		return sbi_err_map_linux_errno(ret.error);
 	else

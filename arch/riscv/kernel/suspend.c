@@ -10,6 +10,7 @@
 #include <linux/suspend.h>
 #include <asm/csr.h>
 #include <asm/sbi.h>
+#include <asm/sbi_ecall.h>
 #include <asm/suspend.h>
 
 void suspend_save_csrs(struct suspend_context *context)
@@ -117,8 +118,7 @@ static int sbi_system_suspend(unsigned long sleep_type,
 {
 	struct sbiret ret;
 
-	ret = sbi_ecall(SBI_EXT_SUSP, SBI_EXT_SUSP_SYSTEM_SUSPEND,
-			sleep_type, resume_addr, opaque);
+	ret = ecall_sbi_system_suspend(sleep_type, resume_addr, opaque);
 	if (ret.error)
 		return sbi_err_map_linux_errno(ret.error);
 
@@ -155,8 +155,7 @@ static int sbi_suspend_finisher(unsigned long suspend_type,
 {
 	struct sbiret ret;
 
-	ret = sbi_ecall(SBI_EXT_HSM, SBI_EXT_HSM_HART_SUSPEND,
-			suspend_type, resume_addr, opaque);
+	ret = ecall_sbi_hart_suspend(suspend_type, resume_addr, opaque);
 
 	return (ret.error) ? sbi_err_map_linux_errno(ret.error) : 0;
 }
