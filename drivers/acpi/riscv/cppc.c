@@ -8,6 +8,7 @@
 #include <acpi/cppc_acpi.h>
 #include <asm/csr.h>
 #include <asm/sbi.h>
+#include <asm/sbi_ecall.h>
 
 /* RISC-V FFH definitions from RISC-V FFH spec */
 #define FFH_CPPC_TYPE(r)		(((r) & GENMASK_ULL(63, 60)) >> 60)
@@ -42,16 +43,14 @@ static void sbi_cppc_read(void *read_data)
 {
 	struct sbi_cppc_data *data = (struct sbi_cppc_data *)read_data;
 
-	data->ret = sbi_ecall(SBI_EXT_CPPC, SBI_EXT_CPPC_READ,
-			      data->reg);
+	data->ret = ecall_sbi_cppc_read(data->reg);
 }
 
 static void sbi_cppc_write(void *write_data)
 {
 	struct sbi_cppc_data *data = (struct sbi_cppc_data *)write_data;
 
-	data->ret = sbi_ecall(SBI_EXT_CPPC, SBI_EXT_CPPC_WRITE,
-			      data->reg, data->val);
+	data->ret = ecall_sbi_cppc_write(data->reg, data->val);
 }
 
 static void cppc_ffh_csr_read(void *read_data)
