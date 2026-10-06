@@ -605,7 +605,7 @@ int sbi_debug_console_write(const char *bytes, unsigned int num_bytes)
 				upper_32_bits(base_addr));
 	else
 		ret = sbi_ecall(SBI_EXT_DBCN, SBI_EXT_DBCN_CONSOLE_WRITE,
-				num_bytes, base_addr);
+				num_bytes, base_addr, 0);
 
 	if (ret.error == SBI_ERR_FAILURE)
 		return -EIO;
@@ -634,7 +634,7 @@ int sbi_debug_console_read(char *bytes, unsigned int num_bytes)
 				upper_32_bits(base_addr));
 	else
 		ret = sbi_ecall(SBI_EXT_DBCN, SBI_EXT_DBCN_CONSOLE_READ,
-				num_bytes, base_addr);
+				num_bytes, base_addr, 0);
 
 	if (ret.error == SBI_ERR_FAILURE)
 		return -EIO;
