@@ -423,3 +423,8 @@ The following keys are defined:
   * :c:macro:`RISCV_HWPROBE_EXT_ZA64RS`: The Za64rs extension is supported,
     as defined in the RISC-V Profiles specification starting from commit
     b1d80660 ("Updated to ratified state.")
+
+  * :c:macro:`RISCV_HWPROBE_EXT_ZKL`: The Zkl (KLE Cryptographic Lockers)
+    extension is supported, as defined in the development draft of the RISC-V
+    High Assurance Cryptography specification (prototype; the bit, the
+    encodings and the ABI are provisional).

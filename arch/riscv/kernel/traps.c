@@ -31,6 +31,7 @@
 #include <asm/syscall.h>
 #include <asm/thread_info.h>
 #include <asm/vector.h>
+#include <asm/kle.h>
 #include <asm/irq_stack.h>
 
 int show_unhandled_signals = 1;
@@ -177,6 +178,8 @@ asmlinkage __visible __trap_section void do_trap_insn_illegal(struct pt_regs *re
 
 		handled = riscv_v_first_use_handler(regs);
 		if (!handled)
+			handled = riscv_kle_first_use_handler(regs);
+		if (!handled)
 			do_trap_error(regs, SIGILL, ILL_ILLOPC, regs->epc,
 				      "Oops - illegal instruction");
 
@@ -187,6 +190,42 @@ asmlinkage __visible __trap_section void do_trap_insn_illegal(struct pt_regs *re
 
 		do_trap_error(regs, SIGILL, ILL_ILLOPC, regs->epc,
 			      "Oops - illegal instruction");
+
+		irqentry_nmi_exit(regs, state);
+	}
+}
+
+/*
+ * Zkl (KLE) unsupported-Metadata, privilege-violation, out-of-memory,
+ * RBG-unavailable and clock-unavailable exceptions, which M-mode forwards
+ * to S-mode (none is delegable).  This kernel resolves none of
+ * them and forwards them to the process.
+ */
+DO_ERROR_INFO(do_trap_kle,
+	SIGILL, ILL_ILLOPN, "KLE exception");
+
+/*
+ * Zkl (KLE) locker-Off: the task touched a locker that its context switch
+ * left Off in sllockerstatus, to import it on demand.  M-mode forwards the
+ * exception, which is not delegable.
+ */
+asmlinkage __visible __trap_section void do_trap_kle_off(struct pt_regs *regs)
+{
+	if (user_mode(regs)) {
+		irqentry_enter_from_user_mode(regs);
+		local_irq_enable();
+
+		if (!riscv_kle_off_handler(regs))
+			do_trap_error(regs, SIGILL, ILL_ILLOPN, regs->epc,
+				      "Oops - KLE locker-Off");
+
+		local_irq_disable();
+		irqentry_exit_to_user_mode(regs);
+	} else {
+		irqentry_state_t state = irqentry_nmi_enter(regs);
+
+		do_trap_error(regs, SIGILL, ILL_ILLOPN, regs->epc,
+			      "Oops - KLE locker-Off");
 
 		irqentry_nmi_exit(regs, state);
 	}

@@ -178,7 +178,7 @@ SYM_CODE_START(handle_exception)
 	 * Disable the FPU/Vector to detect illegal usage of floating point
 	 * or vector in kernel space.
 	 */
-	li t0, SR_SUM | SR_FS_VS
+	li t0, SR_SUM | SR_FS_VS | SR_KLS
 #ifdef CONFIG_64BIT
 	li t1, SR_ELP
 	or t0, t0, t1
@@ -504,6 +504,18 @@ SYM_DATA_START_LOCAL(excp_vect_table)
 	RISCV_PTR do_trap_unknown /* cause=17 */
 	RISCV_PTR do_trap_software_check /* cause=18 is sw check exception */
 	RISCV_PTR do_trap_hardware_error /* hardware error (19) */
+	RISCV_PTR do_trap_unknown /* cause=20 */
+	RISCV_PTR do_trap_unknown /* cause=21 */
+	RISCV_PTR do_trap_unknown /* cause=22 */
+	RISCV_PTR do_trap_unknown /* cause=23 */
+	RISCV_PTR do_trap_unknown /* cause=24 KLE fatal-error */
+	RISCV_PTR do_trap_unknown /* cause=25 KLE missing-CSK */
+	RISCV_PTR do_trap_kle_off /* cause=26 KLE locker-Off */
+	RISCV_PTR do_trap_kle	  /* cause=27..31: KLE exceptions forwarded */
+	RISCV_PTR do_trap_kle	  /* by M-mode */
+	RISCV_PTR do_trap_kle
+	RISCV_PTR do_trap_kle
+	RISCV_PTR do_trap_kle
 SYM_DATA_END_LABEL(excp_vect_table, SYM_L_LOCAL, excp_vect_table_end)
 
 #ifndef CONFIG_MMU

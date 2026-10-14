@@ -40,6 +40,13 @@
 #define SR_VS_DIRTY	_AC(0x00000600, UL)
 
 #define SR_VS_THEAD		_AC(0x01800000, UL) /* xtheadvector Status */
+
+/* Zkl (KLE) context status, provisional position */
+#define SR_KLS			_AC(0x06000000, UL)
+#define SR_KLS_OFF		_AC(0x00000000, UL)
+#define SR_KLS_INITIAL		_AC(0x02000000, UL)
+#define SR_KLS_CLEAN		_AC(0x04000000, UL)
+#define SR_KLS_DIRTY		_AC(0x06000000, UL)
 #define SR_VS_OFF_THEAD		_AC(0x00000000, UL)
 #define SR_VS_INITIAL_THEAD	_AC(0x00800000, UL)
 #define SR_VS_CLEAN_THEAD	_AC(0x01000000, UL)
@@ -126,6 +133,16 @@
 #define EXC_LOAD_GUEST_PAGE_FAULT	21
 #define EXC_VIRTUAL_INST_FAULT		22
 #define EXC_STORE_GUEST_PAGE_FAULT	23
+/*
+ * Zkl (KLE) exceptions, provisional cause numbers.  None is delegable: they
+ * reach S-mode only when M-mode forwards them.
+ */
+#define EXC_KL_LOCKER_OFF		26
+#define EXC_KL_UNSUPPORTED_METADATA	27
+#define EXC_KL_PRIVILEGE_VIOLATION	28
+#define EXC_KL_OUT_OF_MEMORY		29
+#define EXC_KL_RBG_UNAVAILABLE		30
+#define EXC_KL_CLOCK_UNAVAILABLE	31
 
 /* PMP configuration */
 #define PMP_R			0x01
@@ -533,6 +550,13 @@
 
 /* Scalar Crypto Extension - Entropy */
 #define CSR_SEED		0x015
+
+/* Zkl (KLE) CSRs, provisional addresses */
+#define CSR_KLSTART		0x800
+#define CSR_KLNAMEDLOCKER	0x801
+#define CSR_SKLLOCALITY0	0x5e0
+#define CSR_SKLLOCALITY1	0x5e1
+#define CSR_SLLOCKERSTATUS	0x5e2
 #define SEED_OPST_MASK		_AC(0xC0000000, UL)
 #define SEED_OPST_BIST		_AC(0x00000000, UL)
 #define SEED_OPST_WAIT		_AC(0x40000000, UL)

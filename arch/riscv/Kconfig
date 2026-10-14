@@ -853,6 +853,23 @@ config RISCV_ISA_ZICBOZ
 
 	   If you don't know what to do here, say Y.
 
+config RISCV_ISA_ZKL
+	bool "Zkl (KLE cryptographic lockers) support (prototype)"
+	depends on RISCV_ISA_V
+	depends on 64BIT
+	default n
+	help
+	  Adds support for user space use of the Zkl Cryptographic Lockers
+	  Extension (KLE): the lockers, KLE CSRs and SLocality are part of
+	  the task context.  On a context switch the lockers of the outgoing
+	  task are exported as Sealed Cryptographic Contexts into the task and
+	  re-imported when it runs again.
+
+	  The encodings, CSR addresses and exception causes follow a
+	  development draft of the specification and are provisional.
+
+	  If you don't know what to do here, say N.
+
 config RISCV_ISA_ZICBOP
 	bool "Zicbop extension support for cache block prefetch"
 	depends on MMU

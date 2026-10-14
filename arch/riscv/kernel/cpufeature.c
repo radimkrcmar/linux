@@ -172,6 +172,29 @@ static int riscv_ext_vector_x_validate(const struct riscv_isa_ext_data *data,
 	return 0;
 }
 
+static int riscv_ext_zkl_validate(const struct riscv_isa_ext_data *data,
+				  const unsigned long *isa_bitmap)
+{
+	if (!IS_ENABLED(CONFIG_RISCV_ISA_ZKL))
+		return -EINVAL;
+
+	/* The prototype uses Zklv, which needs the V extension. */
+	if (!__riscv_isa_extension_available(isa_bitmap, RISCV_ISA_EXT_V))
+		return -EPROBE_DEFER;
+
+	return 0;
+}
+
+static int riscv_ext_ssklstatus_validate(const struct riscv_isa_ext_data *data,
+					 const unsigned long *isa_bitmap)
+{
+	/* sllockerstatus tracks Zkl lockers. */
+	if (!__riscv_isa_extension_available(isa_bitmap, RISCV_ISA_EXT_ZKL))
+		return -EPROBE_DEFER;
+
+	return 0;
+}
+
 static int riscv_ext_vector_float_validate(const struct riscv_isa_ext_data *data,
 					   const unsigned long *isa_bitmap)
 {
@@ -581,6 +604,7 @@ const struct riscv_isa_ext_data riscv_isa_ext[] = {
 	__RISCV_ISA_EXT_DATA(zbkx, RISCV_ISA_EXT_ZBKX),
 	__RISCV_ISA_EXT_DATA(zbs, RISCV_ISA_EXT_ZBS),
 	__RISCV_ISA_EXT_BUNDLE(zk, riscv_zk_bundled_exts),
+	__RISCV_ISA_EXT_DATA_VALIDATE(zkl, RISCV_ISA_EXT_ZKL, riscv_ext_zkl_validate),
 	__RISCV_ISA_EXT_BUNDLE(zkn, riscv_zkn_bundled_exts),
 	__RISCV_ISA_EXT_DATA(zknd, RISCV_ISA_EXT_ZKND),
 	__RISCV_ISA_EXT_DATA(zkne, RISCV_ISA_EXT_ZKNE),
@@ -630,6 +654,8 @@ const struct riscv_isa_ext_data riscv_isa_ext[] = {
 	__RISCV_ISA_EXT_DATA_VALIDATE(ssccfg, RISCV_ISA_EXT_SSCCFG, riscv_ext_ssccfg_validate),
 	__RISCV_ISA_EXT_DATA(sscofpmf, RISCV_ISA_EXT_SSCOFPMF),
 	__RISCV_ISA_EXT_DATA(sscsrind, RISCV_ISA_EXT_SSCSRIND),
+	__RISCV_ISA_EXT_DATA_VALIDATE(ssklstatus, RISCV_ISA_EXT_SSKLSTATUS,
+				      riscv_ext_ssklstatus_validate),
 	__RISCV_ISA_EXT_SUPERSET(ssnpm, RISCV_ISA_EXT_SSNPM, riscv_xlinuxenvcfg_exts),
 	__RISCV_ISA_EXT_DATA(ssqosid, RISCV_ISA_EXT_SSQOSID),
 	__RISCV_ISA_EXT_DATA(sstc, RISCV_ISA_EXT_SSTC),

@@ -10,6 +10,7 @@
 #include <linux/sched/task_stack.h>
 #include <linux/mm_types.h>
 #include <asm/vector.h>
+#include <asm/kle.h>
 #include <asm/cpufeature.h>
 #include <asm/processor.h>
 #include <asm/ptrace.h>
@@ -122,6 +123,8 @@ do {							\
 		__switch_to_vector(__prev, __next);	\
 	if (has_srmcfg())				\
 		__switch_to_srmcfg(__next);		\
+	if (has_kle())					\
+		riscv_kle_switch(__prev, __next);	\
 	if (switch_to_should_flush_icache(__next))	\
 		local_flush_icache_all();		\
 	__switch_to_envcfg(__next);			\

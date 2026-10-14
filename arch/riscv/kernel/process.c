@@ -29,6 +29,7 @@
 #include <asm/thread_info.h>
 #include <asm/cpuidle.h>
 #include <asm/vector.h>
+#include <asm/kle.h>
 #include <asm/cpufeature.h>
 #include <asm/exec.h>
 #include <asm/usercfi.h>
@@ -204,6 +205,7 @@ void flush_thread(void)
 	if (riscv_has_extension_unlikely(RISCV_ISA_EXT_SUPM))
 		envcfg_update_bits(current, ENVCFG_PMM, ENVCFG_PMM_PMLEN_0);
 #endif
+	riscv_kle_flush_thread();
 }
 
 void arch_release_task_struct(struct task_struct *tsk)
@@ -211,6 +213,7 @@ void arch_release_task_struct(struct task_struct *tsk)
 	/* Free the vector context of datap. */
 	if (has_vector() || has_xtheadvector())
 		riscv_v_thread_free(tsk);
+	riscv_kle_thread_free(tsk);
 }
 
 int arch_dup_task_struct(struct task_struct *dst, struct task_struct *src)
@@ -221,6 +224,10 @@ int arch_dup_task_struct(struct task_struct *dst, struct task_struct *src)
 	memset(&dst->thread.vstate, 0, sizeof(struct __riscv_v_ext_state));
 	memset(&dst->thread.kernel_vstate, 0, sizeof(struct __riscv_v_ext_state));
 	clear_tsk_thread_flag(dst, TIF_RISCV_V_DEFER_RESTORE);
+#ifdef CONFIG_RISCV_ISA_ZKL
+	/* Lockers are per hart: a new thread or child starts without any. */
+	dst->thread.kle = NULL;
+#endif
 
 	return 0;
 }
@@ -270,6 +277,7 @@ int copy_thread(struct task_struct *p, const struct kernel_clone_args *args)
 		*childregs = *(current_pt_regs());
 		/* Turn off status.VS */
 		riscv_v_vstate_off(childregs);
+		riscv_kle_off(childregs);
 		if (usp) /* User fork */
 			childregs->sp = usp;
 		/* if needed, set new ssp */

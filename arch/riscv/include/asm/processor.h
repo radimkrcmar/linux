@@ -134,6 +134,9 @@ struct thread_struct {
 #ifdef CONFIG_RISCV_ISA_SSQOSID
 	u32 srmcfg;
 #endif
+#ifdef CONFIG_RISCV_ISA_ZKL
+	struct riscv_kle_ctx *kle;
+#endif
 };
 
 /* Whitelist the fstate from the task_struct for hardened usercopy */
